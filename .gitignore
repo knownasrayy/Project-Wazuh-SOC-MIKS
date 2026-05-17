@@ -1,0 +1,23 @@
+# SSH Keys — JANGAN di-commit ke GitHub!
+*.pem
+*.ppk
+*.key
+
+# File kredensial
+.env
+passwords.txt
+wazuh-passwords.txt
+
+# File instalasi Wazuh (besar, tidak perlu di-track)
+wazuh-install.sh
+wazuh-install-files.tar
+wazuh-install-files/
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# Log files
+*.log
