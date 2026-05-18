@@ -1,0 +1,35 @@
+<!--
+  File   : ddos_rules.xml
+  Lokasi : /var/ossec/etc/rules/local_rules.xml (di VM1 Manager)
+  Orang  : Orang 4 — Skenario DDoS
+
+  Deskripsi:
+  Rule kustom ini berfungsi mendeteksi anomali paket SYN (TCP SYN Flood)
+  berdasarkan log iptables dari VM target.
+-->
+
+<group name="syslog,iptables,ddos,">
+  <!-- 
+    Rule 100001: Mendeteksi log dari iptables dengan prefix "Possible SYN Flood: " 
+  -->
+  <rule id="100001" level="6">
+    <if_sid>4100</if_sid>
+    <match>Possible SYN Flood:</match>
+    <description>IPTables: Deteksi awal traffic SYN yang mencurigakan (Indikasi DDoS).</description>
+  </rule>
+
+  <!-- 
+    Rule 100002: Eskalasi (Level 12 / Critical) jika Rule 100001 terjadi 
+    lebih dari 20 kali dalam rentang waktu 60 detik (1 menit).
+    Ini memastikan kita menangkap "banjir" paket, bukan hanya 1-2 paket biasa.
+  -->
+  <rule id="100002" level="12" frequency="20" timeframe="60">
+    <if_matched_sid>100001</if_matched_sid>
+    <same_source_ip />
+    <description>🔴 CRITICAL: Kemungkinan Serangan SYN Flood DDoS Sedang Berlangsung!</description>
+    <mitre>
+      <id>T1498.001</id>
+    </mitre>
+    <group>attack,ddos,</group>
+  </rule>
+</group>
