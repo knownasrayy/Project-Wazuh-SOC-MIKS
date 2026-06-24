@@ -749,8 +749,7 @@ Temuan EDA:
 - Rule ID **100010** mendominasi (41.822 alert) → mayoritas adalah deteksi SYN Flood dari iptables
 - Terdapat **33 jenis rule_id** unik dari 3 VM (agent-vm2, agent-vm3, vm1-manager)
 
-<img width="2132" height="520" alt="image" src="https://github.com/user-attachments/assets/eb6dda30-31e8-4fb5-a904-e9c1ee0c3b05" />
-
+![EDA Overview](01_eda_overview.png)
 > Kiri: distribusi label imbalanced | Tengah: distribusi rule level | Kanan: distribusi hit_count_60s
 
 ---
@@ -773,8 +772,7 @@ Transformasi yang dilakukan pada 12 kolom mentah menjadi **16 fitur siap trainin
 
 Hasil: **0 missing values** setelah preprocessing, semua fitur numerik.
 
-<img width="1276" height="912" alt="image" src="https://github.com/user-attachments/assets/e2c489ef-47c8-4995-952a-1d710f2667b6" />
-
+![Correlation Matrix](02_correlation_matrix.png)
 > Heatmap korelasi antar fitur — `is_ddos_group` dan `desc_is_syn` menunjukkan korelasi tinggi dengan label (wajar karena DDoS mendominasi TP)
 
 ---
