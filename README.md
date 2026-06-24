@@ -749,7 +749,8 @@ Temuan EDA:
 - Rule ID **100010** mendominasi (41.822 alert) → mayoritas adalah deteksi SYN Flood dari iptables
 - Terdapat **33 jenis rule_id** unik dari 3 VM (agent-vm2, agent-vm3, vm1-manager)
 
-![EDA Overview](01_eda_overview.png)
+<img width="2136" height="524" alt="image" src="https://github.com/user-attachments/assets/97f0431f-743a-4ce2-b7fd-07f631cf66bf" />
+
 > Kiri: distribusi label imbalanced | Tengah: distribusi rule level | Kanan: distribusi hit_count_60s
 
 ---
@@ -772,7 +773,8 @@ Transformasi yang dilakukan pada 12 kolom mentah menjadi **16 fitur siap trainin
 
 Hasil: **0 missing values** setelah preprocessing, semua fitur numerik.
 
-![Correlation Matrix](02_correlation_matrix.png)
+<img width="1273" height="909" alt="image" src="https://github.com/user-attachments/assets/02c9acee-05a1-4473-aa32-44cc7d4e9605" />
+
 > Heatmap korelasi antar fitur — `is_ddos_group` dan `desc_is_syn` menunjukkan korelasi tinggi dengan label (wajar karena DDoS mendominasi TP)
 
 ---
@@ -808,13 +810,16 @@ Tiga model dilatih dan dibandingkan:
 
 **Best Model: Random Forest** (F1 tertinggi, training tercepat)
 
-![Confusion Matrix](03_confusion_matrix.png)
+<img width="2131" height="618" alt="image" src="https://github.com/user-attachments/assets/600e85a2-ecbc-4397-b457-a5f2b81327c0" />
+
 > Confusion matrix ketiga model — hampir tidak ada misclassification
 
-![ROC Curve](04_roc_curve.png)
+<img width="1217" height="906" alt="image" src="https://github.com/user-attachments/assets/10ac1d68-aaff-4d2d-b1c6-373f52478ed5" />
+
 > ROC-AUC = 1.0000 untuk semua model → pemisahan FP vs TP sempurna
 
-![Model Comparison](06_model_comparison.png)
+<img width="1375" height="902" alt="image" src="https://github.com/user-attachments/assets/fc258a16-cf9c-4ddc-bfa1-d400243c283a" />
+
 > Perbandingan visual semua metrik antar model
 
 ---
@@ -833,7 +838,8 @@ Top 5 fitur paling berpengaruh pada Random Forest:
 | 4 | `rule_id` | 0.0824 | Jenis rule yang terpicu |
 | 5 | `dst_port` | 0.0795 | Port tujuan (port 80 jadi target flood) |
 
-![Feature Importance](05_feature_importance.png)
+<img width="1835" height="902" alt="image" src="https://github.com/user-attachments/assets/5522e634-fa8d-49a7-819a-987551e2b846" />
+
 > Fitur berbasis IP dan frekuensi mendominasi — konsisten dengan pola serangan DDoS SYN Flood
 
 ---
