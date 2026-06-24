@@ -307,5 +307,181 @@ Segera jalankan perintah ini di VM3 (Attacker) setelah pengujian selesai agar ti
 sudo pkill -9 hping3
 ```
 
+
+## FINAL PROJECT UPDATE
+
+# A3 Progress - Wazuh SOC Project
+
+## 1. Wazuh Agent Connection
+
+Status: DONE ✅
+
+Agent:
+- VM2 Agent
+- VM3 Agent
+
+Bukti:
+
+```bash
+wazuh-agentd: Connected to the server
+```
+Fungsi:
+
+Menghubungkan endpoint ke Wazuh Manager
+Mengirim log dan event ke Wazuh Dashboard
+2. File Integrity Monitoring (FIM)
+
+Status: DONE ✅
+
+File yang diubah:
+```
+/var/ossec/etc/ossec.conf
+```
+Konfigurasi:
+```
+<syscheck>
+    <disabled>no</disabled>
+
+    <directories>/etc,/usr/bin,/usr/sbin</directories>
+    <directories>/bin,/sbin,/boot</directories>
+
+    <directories realtime="yes">/tmp</directories>
+</syscheck>
+```
+Fungsi:
+
+Mengaktifkan File Integrity Monitoring
+Monitoring perubahan file realtime pada folder /tmp
+
+Testing:
+```
+sudo touch /tmp/FIM_SUCCESS.txt
+```
+Hasil Alert:
+
+Rule:
+Integrity checksum changed
+
+Level:
+7
+
+MITRE:
+T1565.001 - Stored Data Manipulation
+
+Fungsi:
+
+Membuktikan Wazuh mendeteksi perubahan file
+3. Malware Simulation
+
+Status: DONE ✅
+
+File dibuat:
+```
+/tmp/simulate_malware.sh
+```
+Isi file:
+```
+#!/bin/bash
+
+echo "[*] Malware Simulation - Mass File Write"
+
+for i in $(seq 1 200); do
+  echo "encrypted_payload_$i" > /tmp/mal_$i.enc
+done
+
+
+echo "[*] Suspicious outbound connection attempt"
+
+curl -s --max-time 3 http://10.0.0.6:4444 || true
+
+
+echo "[*] Privilege escalation probe"
+
+sudo -l 2>/dev/null || true
+
+
+echo "[*] Suspicious cron injection attempt"
+
+echo "* * * * * root /tmp/backdoor.sh" >> /tmp/fake_cron || true
+
+
+echo "[DONE]"
+```
+Fungsi:
+
+Simulasi perilaku malware:
+
+Membuat banyak file mencurigakan
+Mencoba koneksi keluar
+Mengecek privilege user
+Membuat percobaan persistence melalui cron
+
+Eksekusi:
+
+sudo bash /tmp/simulate_malware.sh
+
+Output:
+
+[*] Malware Simulation - Mass File Write
+[*] Suspicious outbound connection attempt
+[*] Privilege escalation probe
+[*] Suspicious cron injection attempt
+[DONE]
+4. DDoS Simulation
+
+Status: DONE ✅
+
+Simulasi:
+
+SYN Flood Attack
+Abnormal network traffic
+
+Tujuan:
+
+Membuat event serangan jaringan
+
+Hasil Wazuh:
+
+Rule:
+100011
+
+Level:
+12
+
+MITRE:
+T1498.001
+Network Denial of Service
+
+Fungsi:
+
+Membuktikan Wazuh dapat mendeteksi serangan jaringan
+5. Dashboard Analysis
+
+Status: DONE ✅
+
+Analisis:
+
+Agent status
+Alert severity
+Rule ID
+MITRE ATT&CK mapping
+
+Alur:
+
+Attacker
+    |
+    v
+Agent VM
+    |
+    v
+Wazuh Agent
+    |
+    v
+Wazuh Manager
+    |
+    v
+Alert Dashboard
+
+```
 ---
 *Proyek ini diselesaikan oleh kelompok praktikum MIKS — 2026.*
