@@ -953,6 +953,39 @@ A7 (SOAR) ◄──(Rule 100021)── Wazuh Dashboard ◄──(log)── AI V
 
 ---
 
+## Cara Pengujian (Testing) API AI Server
+
+Jika teman-teman tim (seperti A7 atau A8) ingin mengetes API Server AI ini secara manual tanpa harus menjalankan simulasi serangan penuh dari VM Attacker, kalian bisa menggunakan perintah `curl` langsung dari terminal VM1 (Wazuh Manager):
+
+**1. Test Alert Normal / Noise (Seharusnya False Positive / FP):**
+```bash
+curl -s -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timestamp": "2026-06-24T14:32:00+00:00",
+    "rule": { "id": "5710", "level": 5, "description": "sshd: Attempt to login using a non-existent user", "groups": ["syslog", "sshd", "authentication_failed"] },
+    "agent": {"name": "agent-vm2"},
+    "data": {"srcip": "78.186.54.65"}
+  }' | grep -E "ai_verdict|ai_confidence"
+```
+*Output yang diharapkan:* Model akan mendeteksi ini sebagai pola *noise* biasa dan mengembalikan `"ai_verdict": "FP"*.
+
+**2. Test Alert Serangan DDoS (Seharusnya True Positive / TP):**
+```bash
+# Kamu bisa menjalankan command ini beberapa kali secara cepat untuk mensimulasikan "hit_count" tinggi
+curl -s -X POST http://localhost:5000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timestamp": "2026-06-24T14:32:00+00:00",
+    "rule": { "id": "100011", "level": 12, "description": "CRITICAL: Kemungkinan Serangan SYN Flood DDoS Sedang Berlangsung!", "groups": ["syslog", "iptables", "ddos", "attack"] },
+    "agent": {"name": "agent-vm2"},
+    "data": {"srcip": "10.0.0.6", "dstip": "10.0.0.5", "dstport": "80"}
+  }' | grep -E "ai_verdict|ai_confidence"
+```
+*Output yang diharapkan:* Model akan mengenali ini sebagai *True Positive* (karena rules DDoS dan IP Attacker) dan mengembalikan `"ai_verdict": "TP"`.
+
+---
+
 ## Hasil Pengujian End-to-End
 
 - ✅ **Simulasi Serangan DDoS (SYN Flood):** Model langsung merespons lonjakan trafik dengan vonis **TP (True Positive)** dengan tingkat keyakinan (confidence) > 0.90.
