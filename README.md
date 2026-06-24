@@ -953,11 +953,12 @@ A7 (SOAR) ◄──(Rule 100021)── Wazuh Dashboard ◄──(log)── AI V
 
 ---
 
-## Cara Pengujian (Testing) API AI Server
+## Cara Pengujian & Bukti Implementasi (Screenshots)
 
-Jika teman-teman tim (seperti A7 atau A8) ingin mengetes API Server AI ini secara manual tanpa harus menjalankan simulasi serangan penuh dari VM Attacker, kalian bisa menggunakan perintah `curl` langsung dari terminal VM1 (Wazuh Manager):
+Jika teman-teman tim (seperti A7 atau A8) ingin mengetes API Server AI ini secara manual tanpa harus menjalankan simulasi serangan penuh dari VM Attacker, kalian bisa menggunakan perintah `curl` langsung dari terminal VM1 (Wazuh Manager).
 
-**1. Test Alert Normal / Noise (Seharusnya False Positive / FP):**
+### 1. Test Alert Normal / Noise (Seharusnya False Positive / FP)
+**Cara Pengujian:**
 ```bash
 curl -s -X POST http://localhost:5000/predict \
   -H "Content-Type: application/json" \
@@ -968,9 +969,14 @@ curl -s -X POST http://localhost:5000/predict \
     "data": {"srcip": "78.186.54.65"}
   }' | grep -E "ai_verdict|ai_confidence"
 ```
-*Output yang diharapkan:* Model akan mendeteksi ini sebagai pola *noise* biasa dan mengembalikan `"ai_verdict": "FP"*.
+**Hasil & Bukti Implementasi:**
+Model mendeteksi ini sebagai pola *noise* biasa dan mengembalikan `"ai_verdict": "FP"` dengan *confidence* yang sangat rendah.
+> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 1 - Bukti terminal hasil Test Alert Normal (FP)]*
 
-**2. Test Alert Serangan DDoS (Seharusnya True Positive / TP):**
+<br>
+
+### 2. Test Alert Serangan DDoS (Seharusnya True Positive / TP)
+**Cara Pengujian:**
 ```bash
 # Kamu bisa menjalankan command ini beberapa kali secara cepat untuk mensimulasikan "hit_count" tinggi
 curl -s -X POST http://localhost:5000/predict \
@@ -982,24 +988,16 @@ curl -s -X POST http://localhost:5000/predict \
     "data": {"srcip": "10.0.0.6", "dstip": "10.0.0.5", "dstport": "80"}
   }' | grep -E "ai_verdict|ai_confidence"
 ```
-*Output yang diharapkan:* Model akan mengenali ini sebagai *True Positive* (karena rules DDoS dan IP Attacker) dan mengembalikan `"ai_verdict": "TP"`.
-
----
-
-## Hasil Pengujian End-to-End
-
-- ✅ **Simulasi Serangan DDoS (SYN Flood):** Model langsung merespons lonjakan trafik dengan vonis **TP (True Positive)** dengan tingkat keyakinan (confidence) > 0.90.
-- ✅ **Simulasi Noise Normal (SSH Failed Login):** Model berhasil mengenali *pattern* trafik biasa dan mengabaikannya dengan vonis **FP (False Positive)** (confidence 0.00).
-
----
-
-## Bukti Implementasi (Screenshots)
-
-> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 1 - Bukti Flask API berjalan dan merespons request]*
+**Hasil & Bukti Implementasi:**
+Model mengenali ini sebagai *True Positive* (karena pola rules DDoS dan IP Attacker) dan mengembalikan `"ai_verdict": "TP"` dengan *confidence* > 0.90.
+> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 2 - Bukti terminal hasil Test Alert Serangan (TP)]*
 
 <br>
 
-> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 2 - Bukti Alert Wazuh Dashboard dengan field `ai_verdict: TP/FP`]*
+### 3. Pengujian End-to-End di Wazuh Dashboard
+Setelah memastikan Flask API berjalan, pengujian lanjutan adalah dengan menjalankan serangan *real* dari VM3 (Attacker) menggunakan `hping3`. Alert akan ditangkap oleh Active Response Wazuh, dikirim ke AI, lalu AI akan memunculkan *alert custom* di Dashboard Wazuh.
+**Hasil & Bukti Implementasi:**
+> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 3 - Bukti layar Wazuh Dashboard menampilkan alert dengan field `ai_verdict: TP/FP`]*
 
 ---
 *A6 — Final Project MIKS SOC 2026*
