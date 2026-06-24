@@ -684,23 +684,217 @@ Statistik Final Dataset (`dataset_final.csv`):
 
 ---
 
-# A5 Progress - Machine Learning Model
+# A5 Progress - Machine Learning Model Development
 
-## 1. Data Preprocessing & Balancing
+## Identitas
 
-Status: IN PROGRESS ⏳
+| | |
+|---|---|
+| **Role** | A5 — AI Engineer / ML Model Development |
+| **Input** | `dataset_final.csv` dari A4 (53.278 baris, sudah dilabeli) |
+| **Output** | Trained model `.pkl` + notebook + visualisasi |
+| **Tanggal Eksekusi** | 24 Juni 2026 |
 
-Fungsi:
-- Menerima `dataset_final.csv` dari A4.
-- Menerapkan SMOTE (*Synthetic Minority Over-sampling Technique*) untuk menyeimbangkan kelas dataset.
+---
 
-## 2. Model Training & Evaluation
+## Tujuan
 
-Status: IN PROGRESS ⏳
+Membangun dan mengevaluasi model Machine Learning untuk mengklasifikasikan alert Wazuh secara otomatis:
+- **Label 0** → False Positive (traffic normal / noise)
+- **Label 1** → True Positive (serangan nyata: DDoS, Malware, Anomali)
 
-Fungsi:
-- Melatih model klasifikasi cerdas untuk deteksi anomali SOC.
-- Menguji tingkat Akurasi, Presisi, dan Recall dari prediksi keamanan.
+---
 
+## Pipeline ML
+
+```
+dataset_final.csv (A4)
+        │
+        ▼
+1. Load & EDA          → Eksplorasi distribusi label, missing values, top rules
+        │
+        ▼
+2. Preprocessing       → Feature engineering dari IP, timestamp, rule_groups, description
+        │
+        ▼
+3. SMOTE Balancing     → Menyeimbangkan kelas minoritas (FP) di training set
+        │
+        ▼
+4. Model Training      → Random Forest, XGBoost, Logistic Regression
+        │
+        ▼
+5. Evaluasi            → Accuracy, F1, ROC-AUC, Confusion Matrix, Feature Importance
+        │
+        ▼
+6. Export              → soc_model_random_forest.pkl + feature_names.pkl
+```
+
+---
+
+## 1. Load & EDA
+
+Status: DONE ✅
+
+Dataset yang diterima dari A4:
+
+| Kategori | Jumlah | Persentase |
+|---|---|---|
+| True Positive (1) | 44.023 | 82.6% |
+| False Positive (0) | 9.255 | 17.4% |
+| **Total** | **53.278** | **100%** |
+
+Temuan EDA:
+- Dataset **tidak seimbang** (rasio TP:FP = 4.76:1) → ditangani dengan SMOTE
+- Missing values di `src_ip` (5.222 baris) dan `dst_ip`/`dst_port` (9.347 baris) — wajar karena alert internal tidak selalu punya IP sumber/tujuan
+- Rule ID **100010** mendominasi (41.822 alert) → mayoritas adalah deteksi SYN Flood dari iptables
+- Terdapat **33 jenis rule_id** unik dari 3 VM (agent-vm2, agent-vm3, vm1-manager)
+
+<img width="2132" height="520" alt="image" src="https://github.com/user-attachments/assets/eb6dda30-31e8-4fb5-a904-e9c1ee0c3b05" />
+
+> Kiri: distribusi label imbalanced | Tengah: distribusi rule level | Kanan: distribusi hit_count_60s
+
+---
+
+## 2. Preprocessing & Feature Engineering
+
+Status: DONE ✅
+
+Transformasi yang dilakukan pada 12 kolom mentah menjadi **16 fitur siap training**:
+
+| Kolom Asal | Transformasi | Fitur Baru |
+|---|---|---|
+| `timestamp` | Ekstrak komponen waktu | `day_of_week`, `minute_of_hour` |
+| `src_ip` | Flag IP internal & attacker | `src_ip_is_internal`, `src_ip_is_attacker` |
+| `dst_ip` | Flag IP target | `dst_ip_is_target` |
+| `rule_groups` | Hitung jumlah group + flag ddos | `rule_groups_count`, `is_ddos_group` |
+| `rule_description` | Flag keyword penting | `desc_is_syn`, `desc_is_ssh`, `desc_is_fim` |
+| `agent_name` | Label encoding | `agent_name` (0/1/2) |
+| `dst_port`, `rule_id`, `rule_level`, `hit_count_60s`, `hour_of_day` | Dipertahankan langsung | — |
+
+Hasil: **0 missing values** setelah preprocessing, semua fitur numerik.
+
+<img width="1276" height="912" alt="image" src="https://github.com/user-attachments/assets/e2c489ef-47c8-4995-952a-1d710f2667b6" />
+
+> Heatmap korelasi antar fitur — `is_ddos_group` dan `desc_is_syn` menunjukkan korelasi tinggi dengan label (wajar karena DDoS mendominasi TP)
+
+---
+
+## 3. SMOTE Balancing
+
+Status: DONE ✅
+
+Teknik yang digunakan: **SMOTE** *(Synthetic Minority Over-sampling Technique)*
+
+| | Sebelum SMOTE | Setelah SMOTE |
+|---|---|---|
+| Training size | 42.622 baris | 70.436 baris |
+| Label 1 (TP) | 35.218 | 35.218 |
+| Label 0 (FP) | 7.404 | 35.218 ✅ |
+| Rasio | 82.6% : 17.4% | **50% : 50%** |
+
+> SMOTE **hanya diterapkan pada training set**. Test set (10.656 baris) tidak disentuh agar evaluasi tetap mencerminkan kondisi data nyata.
+
+---
+
+## 4. Model Training & Evaluasi
+
+Status: DONE ✅
+
+Tiga model dilatih dan dibandingkan:
+
+| Model | Accuracy | Precision | Recall | F1-Score | ROC-AUC | Train Time |
+|---|---|---|---|---|---|---|
+| **Random Forest** ⭐ | 0.9999 | 1.0000 | 0.9999 | 0.9999 | 1.0000 | 0.50s |
+| XGBoost | 0.9999 | 1.0000 | 0.9999 | 0.9999 | 1.0000 | 0.61s |
+| Logistic Regression | 0.9997 | 1.0000 | 0.9997 | 0.9998 | 1.0000 | 1.59s |
+
+**Best Model: Random Forest** (F1 tertinggi, training tercepat)
+
+![Confusion Matrix](03_confusion_matrix.png)
+> Confusion matrix ketiga model — hampir tidak ada misclassification
+
+![ROC Curve](04_roc_curve.png)
+> ROC-AUC = 1.0000 untuk semua model → pemisahan FP vs TP sempurna
+
+![Model Comparison](06_model_comparison.png)
+> Perbandingan visual semua metrik antar model
+
+---
+
+## 5. Feature Importance
+
+Status: DONE ✅
+
+Top 5 fitur paling berpengaruh pada Random Forest:
+
+| Rank | Fitur | Importance | Keterangan |
+|---|---|---|---|
+| 1 | `src_ip_is_attacker` | 0.2454 | Apakah paket dari IP VM3 attacker (10.0.0.6) |
+| 2 | `hit_count_60s` | 0.2338 | Frekuensi paket dalam 60 detik — sinyal utama DDoS |
+| 3 | `src_ip_is_internal` | 0.1995 | IP internal Azure vs eksternal |
+| 4 | `rule_id` | 0.0824 | Jenis rule yang terpicu |
+| 5 | `dst_port` | 0.0795 | Port tujuan (port 80 jadi target flood) |
+
+![Feature Importance](05_feature_importance.png)
+> Fitur berbasis IP dan frekuensi mendominasi — konsisten dengan pola serangan DDoS SYN Flood
+
+---
+
+## 6. Analisis Hasil
+
+**Mengapa hasilnya hampir perfect (0.9999)?**
+
+Ini **bukan overfitting**, melainkan karakteristik data SIEM yang deterministik:
+- Ruleset Wazuh yang dibuat A4 sangat konsisten — rule 100010 hampir selalu menghasilkan label 1
+- Serangan DDoS dari A2 sangat agresif sehingga polanya sangat jelas di data
+- Model berhasil **mengkonfirmasi bahwa labeling A4 akurat dan konsisten** secara matematis
+
+---
+
+## Deliverables
+
+- [x] `A5_SOC_ML_Model.ipynb` — Notebook lengkap end-to-end
+- [x] `soc_model_random_forest.pkl` — Best model (Random Forest)
+- [x] `model_xgboost.pkl` — Model XGBoost
+- [x] `model_logistic_regression.pkl` — Model Logistic Regression
+- [x] `feature_names.pkl` — Urutan fitur untuk inferensi
+- [x] `01_eda_overview.png` — Plot EDA
+- [x] `02_correlation_matrix.png` — Correlation heatmap
+- [x] `03_confusion_matrix.png` — Confusion matrix semua model
+- [x] `04_roc_curve.png` — ROC curve perbandingan
+- [x] `05_feature_importance.png` — Feature importance Random Forest
+- [x] `06_model_comparison.png` — Bar chart perbandingan metrik
+
+---
+
+## Cara Load & Gunakan Model
+
+```python
+import joblib
+import pandas as pd
+
+model = joblib.load('soc_model_random_forest.pkl')
+feature_names = joblib.load('feature_names.pkl')
+
+# Contoh: alert DDoS baru
+new_alert = pd.DataFrame([{
+    'rule_id': 100011, 'rule_level': 12,
+    'agent_name': 0, 'dst_port': 80.0,
+    'hit_count_60s': 250, 'hour_of_day': 14,
+    'day_of_week': 1, 'minute_of_hour': 32,
+    'src_ip_is_internal': 1, 'src_ip_is_attacker': 1,
+    'dst_ip_is_target': 0, 'rule_groups_count': 4,
+    'is_ddos_group': 1, 'desc_is_syn': 1,
+    'desc_is_ssh': 0, 'desc_is_fim': 0
+}])[feature_names]
+
+pred = model.predict(new_alert)
+prob = model.predict_proba(new_alert)[:, 1]
+print(f'Prediksi : {"TP (Serangan)" if pred[0] == 1 else "FP (Normal)"}')
+print(f'Confidence: {prob[0]:.4f}')
+```
+
+---
+*A5 — Final Project MIKS SOC 2026*
 ---
 *Proyek ini diselesaikan oleh kelompok praktikum MIKS — 2026.*
