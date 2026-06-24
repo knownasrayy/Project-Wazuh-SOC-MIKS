@@ -992,6 +992,16 @@ curl -s -X POST http://localhost:5000/predict \
 - ✅ **Simulasi Noise Normal (SSH Failed Login):** Model berhasil mengenali *pattern* trafik biasa dan mengabaikannya dengan vonis **FP (False Positive)** (confidence 0.00).
 
 ---
+
+## Bukti Implementasi (Screenshots)
+
+> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 1 - Bukti Flask API berjalan dan merespons request]*
+
+<br>
+
+> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 2 - Bukti Alert Wazuh Dashboard dengan field `ai_verdict: TP/FP`]*
+
+---
 *A6 — Final Project MIKS SOC 2026*
 ---
 *Proyek ini diselesaikan oleh kelompok praktikum MIKS — 2026.*
