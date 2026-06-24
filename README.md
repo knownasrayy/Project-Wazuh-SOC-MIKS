@@ -602,6 +602,105 @@ Wazuh Manager
     v
 Alert Dashboard
 
+
+
+# A4 Progress - Dataset Engineering & Auto-Labeling
+
+## 1. Wazuh Alert Extraction
+
+Status: DONE ✅
+
+Script yang dieksekusi:
+```bash
+bash export-alerts.sh
 ```
+
+Fungsi:
+- Mengambil log mentah `alerts.json` dari Wazuh Manager (VM1).
+- Mengekstrak 10 field esensial: `timestamp`, `rule_id`, `rule_level`, `rule_description`, `rule_groups`, `agent_name`, `agent_id`, `src_ip`, `dst_ip`, `dst_port`.
+- Mengonversinya menjadi format CSV yang rapi.
+
+Output Eksekusi:
+```text
+==============================================
+✅ Hasil Export
+   Output file : /root/dataset_raw.csv
+   Total alert : 53278 baris
+==============================================
+```
+
+## 2. Feature Engineering & Auto-Labeling
+
+Status: DONE ✅
+
+Script yang dieksekusi:
+```bash
+bash label-dataset.sh
+```
+
+Feature Engineering (Kolom Baru):
+- `hit_count_60s`: Menghitung frekuensi paket dari IP yang sama dalam jeda 60 detik (Sangat krusial untuk mendeteksi DDoS).
+- `hour_of_day`: Mengekstrak jam dari timestamp untuk membantu model mendeteksi anomali waktu.
+
+Mekanisme Auto-Labeling (6-Layer Heuristics):
+1. **Layer 1 (Deterministic Rule)**: Rule `100011` langsung dilabeli `TP (1)`. Rule `5715/5716` dilabeli `FP (0)`.
+2. **Layer 2 (Critical Groups)**: Level ≥10 yang mengandung kata `attack`/`ddos` -> `TP (1)`.
+3. **Layer 3 (IP Heuristics)**: IP Private/Loopback dengan `hit_count` rendah -> `FP (0)`.
+4. **Layer 4 (Frequency Check)**: `hit_count` ≥20 -> `TP (1)`, `hit_count` <5 -> `FP (0)`.
+5. **Layer 5 (Description Analysis)**: Deskripsi yang mengandung kata "flood", "multiple", "exceeded" -> `TP (1)`.
+6. **Layer 6 (Level Fallback)**: Level >8 -> `TP (1)`, Level ≤5 -> `FP (0)`.
+
+Output Eksekusi:
+```text
+=== Auto-Labeling Selesai ===
+Total baris diproses: 53278
+True Positive (1)   : 44017
+False Positive (0)  : 9255
+Ambiguous (-1)      : 6
+```
+
+## 3. Dataset Finalization & Manual Review
+
+Status: DONE ✅
+
+Script yang dieksekusi:
+```bash
+bash finalize-dataset.sh
+```
+
+Fungsi:
+- Menggabungkan hasil manual review (6 baris *Ambiguous* akibat indikasi SSH Brute-force, diubah ke label 1).
+- Melakukan validasi dataset agar tidak ada sisa label `-1`.
+
+Statistik Final Dataset (`dataset_final.csv`):
+
+| Kategori | Jumlah Baris | Persentase | Keterangan |
+|---|---|---|---|
+| **True Positive** | 44.023 | 82.6% | Serangan DDoS, Malware, Anomali |
+| **False Positive** | 9.255 | 17.4% | Traffic Normal / Noise |
+| **Total Data** | 53.278 | 100% | Siap ditraining |
+
+> **Analisis A4 untuk A5:** Rasio TP terhadap FP adalah 4.76x. Dataset tidak seimbang karena durasi serangan yang masif. **Direkomendasikan menggunakan teknik SMOTE** saat ML training.
+
+---
+
+# A5 Progress - Machine Learning Model
+
+## 1. Data Preprocessing & Balancing
+
+Status: IN PROGRESS ⏳
+
+Fungsi:
+- Menerima `dataset_final.csv` dari A4.
+- Menerapkan SMOTE (*Synthetic Minority Over-sampling Technique*) untuk menyeimbangkan kelas dataset.
+
+## 2. Model Training & Evaluation
+
+Status: IN PROGRESS ⏳
+
+Fungsi:
+- Melatih model klasifikasi cerdas untuk deteksi anomali SOC.
+- Menguji tingkat Akurasi, Presisi, dan Recall dari prediksi keamanan.
+
 ---
 *Proyek ini diselesaikan oleh kelompok praktikum MIKS — 2026.*
