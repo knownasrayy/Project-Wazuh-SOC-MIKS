@@ -899,6 +899,66 @@ print(f'Confidence: {prob[0]:.4f}')
 ```
 
 ---
-*A5 — Final Project MIKS SOC 2026*
+
+# A6 Progress - AI Integration ke Wazuh
+
+## Identitas
+
+| | |
+|---|---|
+| **Role** | A6 — AI Engineer / Integration ke Wazuh |
+| **Input** | `soc_model_random_forest.pkl` dari A5, Alert Wazuh |
+| **Output** | AI Flask Server + Active Response Wazuh (Label TP/FP) |
+| **Tanggal Eksekusi** | 25 Juni 2026 |
+
+---
+
+## Tujuan
+
+Mengintegrasikan model Machine Learning yang telah dilatih oleh A5 ke dalam pipeline Wazuh secara *real-time*. Semua alert yang masuk ke Wazuh Manager akan diproses oleh AI untuk menentukan apakah alert tersebut adalah **True Positive (Serangan)** atau **False Positive (Noise)**, sehingga membantu analis SOC mengurangi *false alarm* dan mempermudah eksekusi SOAR (A7).
+
+---
+
+## Arsitektur Integrasi
+
+```text
+Wazuh Agent ──(alert)──► Wazuh Engine ──(stdin)──► ai_verdict.py (Active Response)
+                                                           │
+                                                           ▼ (HTTP POST)
+                                                     ai_server.py (Flask API)
+                                                           │
+                                                           ▼ (Random Forest Model)
+A7 (SOAR) ◄──(Rule 100021)── Wazuh Dashboard ◄──(log)── AI Verdict (TP/FP)
+```
+
+---
+
+## Deliverables & Komponen
+
+| Komponen | File | Deskripsi |
+|---|---|---|
+| **Flask API Server** | `scripts/ai_server.py` | Server Python yang me-load model `.pkl` A5 dan merakit 16 fitur *real-time* (termasuk *sliding window* untuk `hit_count_60s`). |
+| **Active Response Script** | `scripts/ai_verdict.py` | Script penengah yang membaca alert dari Wazuh dan mengirimkannya ke Flask Server. |
+| **Wazuh Config** | `config/ossec_ai_integration.conf` | Konfigurasi XML untuk mendaftarkan command `ai_verdict` di Wazuh. |
+| **Custom Rules AI** | `config/ai_verdict_rules.xml` | Rule khusus (ID 100021-100023) untuk memunculkan hasil prediksi AI ke dashboard Wazuh. |
+| **Deployment Docs** | `docs/ai-integration.md` | Panduan lengkap langkah demi langkah instalasi AI Server di VM1. |
+
+---
+
+## Fitur Unggulan Integrasi
+
+1. **Real-time Feature Engineering:** Karena model A5 bergantung pada fitur frekuensi (`hit_count_60s`), Flask API dibangun dengan mekanisme *sliding window counter* dalam memori untuk menghitung jumlah paket per IP dalam 60 detik terakhir secara instan.
+2. **Fail-Safe Mechanism:** Jika AI Server mati atau tidak merespons, Wazuh Active Response tidak akan *crash*, melainkan melabeli alert sebagai `UNKNOWN` (Warning) agar data tidak hilang.
+3. **Pemisahan Severity (Leveling):** Alert **True Positive (TP)** langsung dinaikkan menjadi Level 10 agar bisa memicu otomatisasi keamanan SOAR (A7). Alert **False Positive (FP)** ditekan ke Level 3 agar tidak mengganggu tampilan monitoring analis.
+
+---
+
+## Hasil Pengujian End-to-End
+
+- ✅ **Simulasi Serangan DDoS (SYN Flood):** Model langsung merespons lonjakan trafik dengan vonis **TP (True Positive)** dengan tingkat keyakinan (confidence) > 0.90.
+- ✅ **Simulasi Noise Normal (SSH Failed Login):** Model berhasil mengenali *pattern* trafik biasa dan mengabaikannya dengan vonis **FP (False Positive)** (confidence 0.00).
+
+---
+*A6 — Final Project MIKS SOC 2026*
 ---
 *Proyek ini diselesaikan oleh kelompok praktikum MIKS — 2026.*

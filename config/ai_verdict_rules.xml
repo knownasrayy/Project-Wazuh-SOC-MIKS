@@ -1,0 +1,67 @@
+<!--
+  File   : ai_verdict_rules.xml
+  Role   : A6 — AI Engineer (Integration ke Wazuh)
+  Lokasi : /var/ossec/etc/rules/local_rules.xml (di VM1)
+
+  CATATAN: TAMBAHKAN rules ini ke local_rules.xml yang sudah ada.
+  Jangan hapus rules DDoS dari A4 (100010, 100011).
+
+  Rules ini mem-parsing output dari ai_verdict.py yang ditulis ke
+  /var/ossec/logs/ai_verdicts.log, sehingga verdict AI muncul
+  sebagai alert baru di Wazuh Dashboard.
+
+  Cara edit di VM1:
+    sudo nano /var/ossec/etc/rules/local_rules.xml
+  Setelah selesai:
+    sudo systemctl restart wazuh-manager
+-->
+
+<group name="ai_verdict,">
+
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <!-- Rule 100020: Deteksi log dari AI verdict script          -->
+  <!-- Base rule yang menangkap semua output ai_verdict          -->
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <rule id="100020" level="3">
+    <decoded_as>json</decoded_as>
+    <match>ai_verdict:</match>
+    <description>AI Verdict: Alert telah dianalisis oleh model ML.</description>
+  </rule>
+
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <!-- Rule 100021: AI Verdict = TRUE POSITIVE                  -->
+  <!-- Alert ini diteruskan ke SOAR (A7) untuk auto-response.   -->
+  <!-- Level 10 agar cukup tinggi untuk trigger SOAR playbook.  -->
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <rule id="100021" level="10">
+    <if_sid>100020</if_sid>
+    <match>verdict:TP</match>
+    <description>🔴 AI Verdict: TRUE POSITIVE — Serangan terdeteksi dan dikonfirmasi oleh AI (confidence tinggi). Diteruskan ke SOAR.</description>
+    <group>ai_verdict,attack,</group>
+  </rule>
+
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <!-- Rule 100022: AI Verdict = FALSE POSITIVE                 -->
+  <!-- Alert ini di-suppress / ditandai sebagai noise.           -->
+  <!-- Level 3 (rendah) agar tidak membanjiri dashboard.        -->
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <rule id="100022" level="3">
+    <if_sid>100020</if_sid>
+    <match>verdict:FP</match>
+    <description>✅ AI Verdict: FALSE POSITIVE — Alert ini dinilai noise oleh AI. Tidak perlu tindakan.</description>
+    <group>ai_verdict,false_positive,</group>
+  </rule>
+
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <!-- Rule 100023: AI Server Unavailable                       -->
+  <!-- Fallback ketika Flask server tidak merespons.             -->
+  <!-- Level 5 sebagai warning untuk tim SOC.                    -->
+  <!-- ═════════════════════════════════════════════════════════ -->
+  <rule id="100023" level="5">
+    <if_sid>100020</if_sid>
+    <match>verdict:UNKNOWN</match>
+    <description>⚠ AI Server tidak tersedia — alert diteruskan tanpa klasifikasi AI.</description>
+    <group>ai_verdict,warning,</group>
+  </rule>
+
+</group>
