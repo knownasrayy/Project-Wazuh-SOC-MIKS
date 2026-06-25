@@ -976,7 +976,7 @@ curl -s -X POST http://localhost:5000/predict \
 ```
 **Hasil & Bukti Implementasi:**
 Model mendeteksi ini sebagai pola *noise* biasa dan mengembalikan `"ai_verdict": "FP"` dengan *confidence* yang sangat rendah.
-> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 1 - Bukti terminal hasil Test Alert Normal (FP)]*
+<img width="1944" height="603" alt="Image" src="https://github.com/user-attachments/assets/8f031e5c-2ccc-401a-a309-98768bcf1d80" />
 
 <br>
 
@@ -995,7 +995,7 @@ curl -s -X POST http://localhost:5000/predict \
 ```
 **Hasil & Bukti Implementasi:**
 Model mengenali ini sebagai *True Positive* (karena pola rules DDoS dan IP Attacker) dan mengembalikan `"ai_verdict": "TP"` dengan *confidence* > 0.90.
-> 🖼️ *[PLACEHOLDER: Masukkan Screenshot 2 - Bukti terminal hasil Test Alert Serangan (TP)]*
+<img width="1957" height="469" alt="Image" src="https://github.com/user-attachments/assets/f17f0d57-2db7-4cfb-b264-b905e67e4cb2" />
 
 <br>
 
