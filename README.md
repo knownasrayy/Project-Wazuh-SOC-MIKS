@@ -580,6 +580,42 @@ Network Denial of Service
 Fungsi:
 
 Membuktikan Wazuh dapat mendeteksi serangan jaringan
+
+phishing_simulation.sh
+
+```
+#!/bin/bash
+
+echo "[*] Social Engineering Simulation"
+
+# Simulasi email phishing
+cat << EOF > /tmp/URGENT_ACCOUNT_VERIFY.txt
+From: security-team@fake-company.com
+To: user@example.com
+
+URGENT!
+
+Your account will be suspended.
+Please verify your identity immediately.
+
+Click here:
+http://fake-login-page.example.com
+
+EOF
+
+echo "[+] Fake phishing email created"
+
+# Simulasi file attachment mencurigakan
+echo "This file contains a suspicious payload simulation" > /tmp/invoice_2026.pdf.exe
+
+echo "[+] Suspicious attachment created"
+
+# Simulasi user membuka file
+cat /tmp/invoice_2026.pdf.exe > /dev/null
+
+echo "[DONE] Social engineering simulation finished"
+```
+
 5. Dashboard Analysis
 
 Status: DONE ✅
