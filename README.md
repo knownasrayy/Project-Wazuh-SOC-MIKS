@@ -529,6 +529,11 @@ echo "[DONE]"
 ```
 Fungsi:
 
+di VM1
+```
+sudo grep -i "mal_\|fake_cron\|Integrity\|syscheck" /var/ossec/logs/alerts/alerts.json | tail -20
+```
+
 Simulasi perilaku malware:
 
 Membuat banyak file mencurigakan
